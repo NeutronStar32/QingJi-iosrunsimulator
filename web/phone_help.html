@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="zh-CN">
+  <meta charset="utf-8" /><meta
+    name="viewport"
+    content="width=device-width,initial-scale=1"
+  /><title>轻迹 · 手机位置回传</title>
+  <style>
+    body{font:15px/1.9 -apple-system,"Microsoft YaHei",sans-serif;max-width:600px;padding:24px;margin:auto;color:#294735;background:#f4f7f1}h1{font-size:24px}li{margin:16px 0}code,textarea{background:white;border:1px solid #d4dfd3;border-radius:8px;padding:10px;font-size:13px;overflow-wrap:anywhere}textarea{display:block;width:100%;box-sizing:border-box;height:100px}b{color:#275e45}.note{font-size:13px;color:#687c6b}button{background:#275e45;color:white;border:0;border-radius:8px;padding:12px 18px}
+  </style>
+  <h1>把手机当前位置标在电脑地图上</h1>
+  <p>
+    首次在「快捷指令」创建一次，以后每次点击运行即可回传。扫码打开的是设置说明，不会直接获取定位，也不是可安装的快捷指令。
+  </p>
+  <p>
+    <b>推荐扫码版：</b>只需修改一次快捷指令。以后先运行快捷指令，再扫电脑上的“②
+    回传地址”二维码；不用手动复制 URL。请勿扫“① 设置说明”码。
+  </p>
+  <ol>
+    <li>打开 iPhone「快捷指令」，新建或编辑 <b>轻迹当前位置</b>。</li>
+    <li>在最上方添加 <b>扫描二维码或条码</b>（搜索“扫描”或“条码”）。</li>
+    <li>添加 <b>获取当前位置</b>。首次运行时允许定位，开启精确位置。</li>
+    <li>
+      添加 <b>获取位置的详细信息</b>，属性选择
+      <b>纬度</b>，输入选择「获取当前位置」输出的「当前位置」。
+    </li>
+    <li>
+      再添加 <b>获取位置的详细信息</b>，属性选择
+      <b>经度</b>。输入也选「当前位置」，不要使用上一步的纬度。
+    </li>
+    <li>
+      在 <b>获取 URL 内容</b> 中，删除原来写死的地址，轻点 URL 输入框，选择
+      <b>选择变量</b>，再点最上方
+      <b>扫描二维码或条码</b>
+      的输出作为地址。不同系统版本可能显示为“二维码／条码”或“扫描结果”；关键是选扫描动作的输出，不要选经度。
+    </li>
+    <li>
+      展开“获取 URL 内容”：<b>方法选 POST，请求体选 JSON</b
+      >。添加两个字段：<br /><code>latitude</code> →
+      插入「纬度」动作的输出变量<br /><code>longitude</code> →
+      插入「经度」动作的输出变量<br />字段可以选数字；若使用文本字段，也要插入变量。
+    </li>
+  </ol>
+  <p>
+    使用时：电脑开启接收 → 手机运行“轻迹当前位置” → 在弹出的扫描画面对准电脑“②
+    回传地址”码 → 等待回传完成。用普通相机扫描回传地址不会自动发送位置。
+  </p>
+  <label for="url"><b>回传地址（仅当前程序会话有效）</b></label
+  ><textarea id="url" readonly>__ENDPOINT__</textarea
+  ><button
+    onclick="const e=document.getElementById('url');e.focus();e.select();document.execCommand('copy');this.textContent='已选择地址，可复制'"
+  >
+    选择并复制地址
+  </button>
+  <p>
+    回到电脑开启接收窗口，然后运行快捷指令。允许快捷指令访问位置、本地网络和上述地址。看到“电脑已收到”即回传成功；电脑地图会自动居中。
+  </p>
+  <p class="note">
+    手机与电脑应在同一 Wi-Fi／局域网。每次接收窗口为 10
+    分钟；点击电脑“开启／延长接收”可延长。重启电脑程序或关闭接收后地址会改变；扫码版只需重新开启接收并扫描新码。原来的手填地址版仍需更新
+    URL。HTTP
+    回传仅适合可信的局域网；不经过外部服务器。若手机正在使用模拟定位，快捷指令可能返回模拟位置，因此地图标记为“手机上报位置”。
+  </p>
+  <p class="note">
+    若无法访问此页面：检查 Wi-Fi、电脑所选 IP、路由器设备隔离，以及 Windows
+    是否允许 Python 在专用网络接收连接。
+  </p>
+</html>

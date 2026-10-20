@@ -1,0 +1,30 @@
+# Local environment and developer tools
+.venv/
+node_modules/
+__pycache__/
+*.py[cod]
+.ruff_cache/
+*.egg-info/
+.env
+.env.*
+!.env.example
+
+# Private runtime state: routes, calibration, logs, reports and generated UI
+data/
+.local/
+*.log
+
+# Legacy test artifacts
+.map-test-profile-*/
+.preview-profile/
+.browser-profile/
+*-preview.png
+preview.png
+phone-pairing.png
+ui.html
+
+# Editor and OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

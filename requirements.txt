@@ -1,0 +1,2 @@
+pymobiledevice3==11.40.0
+qrcode==8.2

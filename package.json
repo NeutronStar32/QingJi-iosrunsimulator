@@ -1,0 +1,16 @@
+{
+  "name": "qingji-dev",
+  "private": true,
+  "scripts": {
+    "test:geometry": "node tests/test_route_geometry.mjs",
+    "test:browser": "node tests/test_map_browser.mjs",
+    "format": "prettier --write web tests/*.mjs",
+    "format:check": "prettier --check web tests/*.mjs"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "devDependencies": {
+    "prettier": "3.9.10"
+  }
+}

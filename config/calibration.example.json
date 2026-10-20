@@ -1,0 +1,38 @@
+{
+  "profiles": [
+    {
+      "name": "示例地点 A",
+      "enabled": true,
+      "origin_lat_lng": [
+        0,
+        0
+      ],
+      "axis_scales": [
+        1,
+        1
+      ],
+      "shift_east_north_m": [
+        0,
+        0
+      ],
+      "radius_m": 250
+    },
+    {
+      "name": "示例地点 B",
+      "enabled": false,
+      "origin_lat_lng": [
+        0,
+        1
+      ],
+      "axis_scales": [
+        1,
+        1
+      ],
+      "shift_east_north_m": [
+        0,
+        0
+      ],
+      "radius_m": 250
+    }
+  ]
+}

@@ -1,0 +1,518 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>轻迹 · iPhone 定位</title>
+    <style>
+      __LEAFLET_STYLE__
+    </style>
+    <style>
+      __MAP_STYLE__
+    </style>
+    <style>
+      __APP_STYLE__
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="brand">
+        <span class="logo">⌖</span>
+        <div>
+          轻迹
+          <div class="sub">iPhone 定位工作台</div>
+        </div>
+      </div>
+      <div class="map-tools">
+        <span class="version">轻迹 · 跑步模拟</span
+        ><span id="exitStatus" role="status" aria-live="polite"></span
+        ><button class="quiet exit-button" id="exitApp" type="button">
+          退出程序
+        </button>
+      </div>
+    </header>
+    <main>
+      <div class="intro">
+        <span class="eyebrow">LOCATION WORKSPACE</span>
+        <h1>在地图上，选一个新位置。</h1>
+        <p>
+          点击地图或拖动标记来选择目标。选点只更新坐标，点击「设置虚拟定位」后会持续保持该位置，直到恢复真实定位。
+        </p>
+      </div>
+      <section class="card phone-card">
+        <div class="row">
+          <div>
+            <h2>手机当前位置</h2>
+            <div id="phoneReport" class="hint" aria-live="polite">
+              尚未收到手机位置。首次需要在手机创建快捷指令并允许定位。
+            </div>
+          </div>
+          <button class="quiet" id="phoneSetup" type="button">
+            获取手机当前位置
+          </button>
+        </div>
+        <details id="phoneDetails">
+          <summary>设置手机位置回传</summary>
+          <p class="hint">
+            电脑与手机连接同一
+            Wi-Fi／局域网。选择电脑在该网络的地址，开启后用手机扫码查看设置步骤。扫码本身不会获取定位。
+          </p>
+          <div class="map-tools">
+            <label for="phoneAddress">电脑网络地址</label
+            ><select id="phoneAddress" aria-label="电脑局域网地址"></select
+            ><button class="quiet" id="phoneStart" type="button">
+              开启／延长接收</button
+            ><button class="quiet" id="phoneStop" type="button">
+              关闭接收
+            </button>
+          </div>
+          <p id="phoneStatus" class="hint" role="status">接收未开启。</p>
+          <div id="phonePairing" hidden>
+            <div class="pair-grid">
+              <div>
+                <b>① 首次设置：相机扫码看说明</b><br /><img
+                  id="phoneQr"
+                  alt="用 iPhone 相机扫码查看设置说明"
+                  width="176"
+                  height="176"
+                /><br /><b>② 回传地址：在快捷指令里扫码</b><br /><img
+                  id="phoneEndpointQr"
+                  alt="在快捷指令中扫描此码，将扫描结果作为获取 URL 内容的地址"
+                  width="176"
+                  height="176"
+                />
+              </div>
+              <div>
+                <b>手机扫码，按说明创建一次快捷指令</b>
+                <p class="hint">
+                  在快捷指令开头添加“扫描二维码或条码”，把“获取 URL
+                  内容”的地址设为扫码结果。每次运行扫描下方“回传地址”码即可。首次运行需要允许定位和本地网络访问。
+                </p>
+                <a
+                  id="phoneGuide"
+                  href="#"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  >在电脑查看完整步骤</a
+                >
+                <p class="hint">回传地址（填入快捷指令“获取 URL 内容”）：</p>
+                <input
+                  id="phoneEndpoint"
+                  readonly
+                  aria-label="手机回传地址"
+                /><button id="phoneCopy" class="quiet" type="button">
+                  复制地址
+                </button>
+              </div>
+            </div>
+          </div>
+          <p class="hint">
+            每次接收窗口 10
+            分钟，可延长。关闭接收或重启程序后，运行快捷指令扫描新的“回传地址”二维码即可，无需手动改地址。位置仅保存在本次程序内存中；回传使用局域网
+            HTTP，请在可信网络使用。若手机受模拟定位影响，上报坐标也可能是模拟值。
+          </p>
+        </details>
+      </section>
+      <section
+        class="card"
+        style="margin-bottom:24px"
+        aria-label="操场偏移修正"
+      >
+        <div class="row">
+          <div>
+            <h2 style="margin-bottom:8px">操场偏移修正</h2>
+            <div class="hint">
+              支持多组命名修正。程序启动时读取文件中 enabled 为 true
+              的组，自动选择能覆盖整条路线且距起点最近的一组。
+            </div>
+          </div>
+          <label
+            style="display:flex;align-items:center;gap:8px;white-space:nowrap"
+            ><input
+              id="calibrationEnabled"
+              type="checkbox"
+              checked
+              style="width:18px;height:18px;margin:0;padding:0"
+            />
+            启用修正</label
+          >
+        </div>
+        <p class="hint" style="margin-bottom:0">
+          网页总开关在下次设置定位或开始跑步时生效；修改配置文件需重启程序。地图选点与保存的路线保持原样。
+        </p>
+        <p
+          id="calibrationStatus"
+          class="hint"
+          role="status"
+          style="margin-bottom:0"
+        >
+          尚未设置定位。启用后会自动判断是否适用于所选位置。
+        </p>
+      </section>
+      <section class="card map-card" aria-label="地图选点">
+        <div class="editor-tabs" role="group" aria-label="地图编辑方式">
+          <button id="singleMode" class="active" type="button">单点定位</button
+          ><button id="routeMode" type="button">路线编辑</button
+          ><span id="editorHelp">单点选位，点击“设置虚拟定位”后生效。</span>
+        </div>
+        <div id="routePanel" class="route-panel" hidden>
+          <div class="route-heading">
+            <div>
+              <h2>规划一条跑步路线</h2>
+              <div id="routeStats" class="hint" aria-live="polite">
+                0 个点 · 0 米 · 未闭环
+              </div>
+            </div>
+            <span class="tag">编辑后可在下方开始跑步</span>
+          </div>
+          <div class="map-tools">
+            <button class="quiet" id="routeUndo" type="button">撤销</button
+            ><button class="quiet" id="routeRedo" type="button">重做</button
+            ><button class="quiet" id="routeClose" type="button">
+              首尾闭环</button
+            ><button class="quiet" id="routeDeletePoint" type="button">
+              删除选中点</button
+            ><button class="quiet" id="routeFit" type="button">
+              查看整条路线</button
+            ><button class="quiet" id="routeNew" type="button">新建路线</button>
+          </div>
+          <div class="map-tools" style="margin-top:14px">
+            <label for="routeShape">路线方式</label
+            ><select id="routeShape">
+              <option value="straight">自由选点 · 直线</option>
+              <option value="smooth">自由选点 · 平滑曲线</option>
+              <option value="track">操场跑道模板</option></select
+            ><button class="quiet" id="routeTrackCreate" type="button">
+              在地图中心生成跑道
+            </button>
+          </div>
+          <div id="trackSettings" class="track-settings" hidden>
+            <label
+              >总长度（米）<input
+                id="trackLength"
+                type="number"
+                value="160"
+                min="20"
+                max="1000" /></label
+            ><label
+              >宽度（米）<input
+                id="trackWidth"
+                type="number"
+                value="80"
+                min="10"
+                max="500" /></label
+            ><label
+              >旋转（度）<input
+                id="trackAngle"
+                type="number"
+                value="0"
+                min="-360"
+                max="360"
+                step="1" /></label
+            ><span class="hint"
+              >拖动“移动”调整整圈；拖动“长／旋转”调整方向与长度；拖动“宽”调整宽度。尺寸按网页地图计算。</span
+            >
+          </div>
+          <div class="route-save">
+            <label for="routeName" class="sr-only">路线名称</label
+            ><input
+              id="routeName"
+              maxlength="80"
+              placeholder="为路线命名，例如：操场一圈"
+            /><button class="primary" id="routeSave" type="button">
+              保存路线</button
+            ><label for="savedRoutes" class="sr-only">已保存路线</label
+            ><select id="savedRoutes">
+              <option value="">选择已保存路线</option></select
+            ><button class="quiet" id="routeLoad" type="button">加载</button
+            ><button class="quiet" id="routeDelete" type="button">
+              删除保存
+            </button>
+          </div>
+          <div class="hint" id="routeFeedback" role="status">
+            连续点击地图添加路线点，拖动编号点调整；点击线段可插入点。可选择平滑曲线，或直接生成并拖动操场跑道模板。
+          </div>
+        </div>
+        <div class="map-toolbar">
+          <div>
+            <h2>地图选点</h2>
+            <span class="hint" id="selectionHint" aria-live="polite"
+              >尚未选点 · 拖动地图、滚轮缩放，点击选择位置</span
+            >
+          </div>
+          <div class="map-tools">
+            <button class="quiet" id="phoneCenter" type="button">
+              回到手机位置</button
+            ><label for="city" class="sr-only">快速浏览城市</label
+            ><select id="city">
+              <option value="">快速浏览城市</option>
+              <option value="39.9042,116.4074">北京</option>
+              <option value="31.2304,121.4737">上海</option>
+              <option value="23.1291,113.2644">广州</option>
+              <option value="22.5431,114.0579">深圳</option>
+              <option value="30.5728,104.0668">成都</option>
+              <option value="30.2741,120.1551">杭州</option>
+              <option value="30.5928,114.3055">武汉</option>
+              <option value="34.3416,108.9398">西安</option></select
+            ><button class="quiet" id="showCoordinates" type="button">
+              查看输入坐标</button
+            ><button class="quiet" id="resetSelection" type="button">
+              清除选点
+            </button>
+          </div>
+        </div>
+        <div class="map-wrap">
+          <div
+            id="map"
+            role="region"
+            aria-label="可点击选择目标位置的地图"
+          ></div>
+          <div class="map-caption" id="mapCaption">
+            区域总览 · 非手机当前位置
+          </div>
+        </div>
+        <div class="map-footer">
+          <span
+            ><i class="legend-dot selected-dot"></i>待设置目标
+            <i class="legend-dot sent-dot"></i>已发送位置
+            <i class="legend-dot phone-dot"></i>手机上报位置</span
+          ><span id="tileStatus" role="status">正在加载在线地图…</span
+          ><button id="retryMap" class="map-retry" type="button" hidden>
+            重新加载地图
+          </button>
+        </div>
+        <div id="routePointPanel" class="route-point-panel" hidden>
+          <div class="hint">
+            点击编号点选中后可删除；下方也可单独选择或删除。
+          </div>
+          <ol id="routePoints"></ol>
+        </div>
+      </section>
+      <section class="card run-card">
+        <div class="row">
+          <div>
+            <h2>跑步模拟</h2>
+            <div class="hint">
+              加载或画好路线后开始。开始会把手机设置到起点；本次路线固定，后续编辑不改变正在进行的任务。
+            </div>
+          </div>
+          <span class="status" id="runBadge">未开始</span>
+        </div>
+        <div class="run-settings">
+          <fieldset>
+            <legend>配速 · 分钟／公里</legend>
+            <div class="pace-input">
+              <label class="sr-only" for="paceMin">配速分钟</label
+              ><input
+                id="paceMin"
+                type="number"
+                min="1"
+                max="30"
+                value="6"
+              /><span>:</span><label class="sr-only" for="paceSec">配速秒</label
+              ><input
+                id="paceSec"
+                type="number"
+                min="0"
+                max="59"
+                value="0"
+              /><span>／公里</span>
+            </div>
+          </fieldset>
+          <label for="runLaps"
+            >目标圈数<input
+              id="runLaps"
+              type="number"
+              min="1"
+              max="10000"
+              value="1" /></label
+          ><label class="infinite-label"
+            ><input id="runInfinite" type="checkbox" /> 无限循环</label
+          >
+        </div>
+        <div class="variation-controls">
+          <label
+            ><span
+              ><input id="paceVariationEnabled" type="checkbox" checked />
+              每圈随机配速</span
+            ><span
+              >±
+              <input
+                id="paceVariation"
+                type="number"
+                min="0"
+                max="120"
+                step="1"
+                value="15"
+                aria-label="每圈配速随机幅度"
+              />
+              秒／公里</span
+            ></label
+          ><label
+            ><span
+              ><input id="trajectoryOffsetEnabled" type="checkbox" checked />
+              轨迹轻微偏移</span
+            ><span
+              >范围
+              <input
+                id="trajectoryOffset"
+                type="number"
+                min="0"
+                max="3"
+                step="0.1"
+                value="0.8"
+                aria-label="轨迹最大偏移米数"
+              />
+              米</span
+            ></label
+          >
+        </div>
+        <p class="hint">
+          每圈随机选择目标配速，逐渐变速；轨迹在所设范围内连续小幅摆动。取消勾选即可关闭，暂停时停在原地。设置在开始跑步时固定。
+        </p>
+        <div class="run-metrics">
+          <div><span>累计里程</span><strong id="runDistance">0 米</strong></div>
+          <div>
+            <span>运动时间（不含休息）</span><strong id="runTime">00:00</strong>
+          </div>
+          <div><span>圈数进度</span><strong id="runLap">—</strong></div>
+          <div><span>当前模拟配速</span><strong id="runPace">—</strong></div>
+        </div>
+        <p id="runPaceDetail" class="hint" role="status">
+          开始后显示基准与本圈目标配速。
+        </p>
+        <div class="map-tools">
+          <button id="runStart" class="primary" type="button">开始跑步</button
+          ><button id="runPause" class="quiet" type="button" disabled>
+            暂停休息</button
+          ><button id="runStop" class="quiet" type="button" disabled>
+            结束跑步</button
+          ><button id="runFit" class="quiet" type="button">查看本次路线</button>
+        </div>
+        <p id="runMessage" class="hint" role="status">
+          尚未开始。多圈及无限循环需先将路线闭环；暂停或结束后会持续保持当前位置，恢复请点击“恢复真实定位”。
+        </p>
+      </section>
+      <div class="grid">
+        <section class="card">
+          <div class="row">
+            <h2>定位状态</h2>
+            <span class="status" id="badge"
+              ><span class="dot"></span><span id="mode">尚未修改</span></span
+            >
+          </div>
+          <div class="position">
+            <div class="pin">⌖</div>
+            <strong id="position">使用手机原有定位</strong>
+            <p id="positionNote">
+              本程序尚未发送定位修改指令。此处未读取或显示手机的真实坐标。
+            </p>
+          </div>
+          <div class="device row">
+            <div>
+              <b id="deviceName">等待连接 iPhone</b
+              ><small id="deviceInfo">使用数据线连接，解锁后信任此电脑</small>
+            </div>
+            <button class="quiet" id="detect">检测设备</button>
+          </div>
+          <div class="device row">
+            <div>
+              <b>开发者连接</b
+              ><small>已开启开发者模式后，准备设备支持组件</small>
+            </div>
+            <button class="quiet" id="prepare">准备设备</button>
+          </div>
+          <div class="info">
+            设备检测和准备均不会设置模拟坐标。首次准备可能需要联网下载，耗时数分钟。
+          </div>
+        </section>
+        <section class="card">
+          <h2>单点虚拟定位<span class="tag">WGS84</span></h2>
+          <p style="font-size:13px;margin-top:0">
+            上方地图选点后会自动填入坐标，也可以手动输入。
+          </p>
+          <form id="locationForm">
+            <div class="fields">
+              <label for="latitude"
+                >纬度 Latitude<input
+                  id="latitude"
+                  name="latitude"
+                  type="number"
+                  min="-90"
+                  max="90"
+                  step="any"
+                  placeholder="-90 ～ 90"
+                  required /></label
+              ><label for="longitude"
+                >经度 Longitude<input
+                  id="longitude"
+                  name="longitude"
+                  type="number"
+                  min="-180"
+                  max="180"
+                  step="any"
+                  placeholder="-180 ～ 180"
+                  required
+              /></label>
+            </div>
+            <div class="hint">
+              地图选点已使用 WGS84
+              坐标，可直接发送。手动粘贴高德、百度等地图坐标时仍需要先转换。
+            </div>
+            <div class="actions">
+              <button type="submit" class="primary">设置虚拟定位</button
+              ><button type="button" id="clear" class="restore">
+                恢复真实定位
+              </button>
+            </div>
+          </form>
+          <div class="steps">
+            <b>首次使用</b><br />① USB 连接、解锁手机并信任电脑<br />②
+            在手机「设置 → 隐私与安全性」开启开发者模式<br />③ 检测设备 →
+            准备设备 → 地图选点 → 设置定位
+          </div>
+        </section>
+      </div>
+      <section class="card bottom" aria-live="polite">
+        <div class="row">
+          <h2 style="margin-bottom:12px">操作反馈</h2>
+          <span class="hint" id="connection">本机服务</span>
+        </div>
+        <div class="notice" id="notice">本次启动尚未修改手机定位。</div>
+        <details style="margin-top:16px">
+          <summary class="hint" style="cursor:pointer">
+            查看操作记录与错误详情
+          </summary>
+          <pre class="activity" id="logs">暂无操作记录</pre>
+        </details>
+      </section>
+      <div class="foot">
+        请先点击右上角“退出程序”停止后台，再关闭此标签页。正在模拟时会先尝试恢复定位，恢复效果仍请在手机地图确认。
+      </div>
+    </main>
+    <script>
+      __LEAFLET_SCRIPT__
+    </script>
+    <script>
+      __APP_SCRIPT__
+    </script>
+    <script>
+      __MAP_SCRIPT__
+    </script>
+    <script>
+      __PHONE_SCRIPT__
+    </script>
+    <script>
+      __GEOMETRY_SCRIPT__
+    </script>
+    <script>
+      __ROUTE_SCRIPT__
+    </script>
+    <script>
+      __RUN_SCRIPT__
+    </script>
+    <script>
+      __EXIT_SCRIPT__
+    </script>
+  </body>
+</html>
