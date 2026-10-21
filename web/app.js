@@ -17,6 +17,7 @@ $('calibrationEnabled').onchange = () => {
 };
 window.calibrationRequested = () => $('calibrationEnabled').checked;
 function render(s) {
+  window.trajectoryPreviewState = s;
   const calibration = s.run?.calibration;
   $('calibrationStatus').textContent =
     s.run?.connected && calibration

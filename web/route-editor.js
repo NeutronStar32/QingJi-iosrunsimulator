@@ -78,6 +78,7 @@
     return meters;
   }
   function draw() {
+    window.dispatchEvent(new Event('qingji-route-change'));
     layer.clearLayers();
     el('routeShape').value = mode;
     el('trackSettings').hidden = mode !== 'track';

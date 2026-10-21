@@ -13,6 +13,7 @@ from .calibration import Calibration
 from .calibration import select as select_calibration
 from .motion import RunMotion
 from .route_store import validate_route
+from .trajectory import TrajectoryPath
 
 
 def distance(a, b):
@@ -62,6 +63,7 @@ class RunPlan:
             ):
                 raise ValueError(name + "参数无效。")
         self.points = route["points"] + ([route["points"][0]] if route["closed"] else [])
+        self.trajectory = None
         self.calibration = select_calibration(self.points, data.get("calibration_enabled", True))
         device_points = [self.calibration.apply(p) for p in self.points]
         self.cumulative = [0.0]
@@ -70,9 +72,56 @@ class RunPlan:
         self.length = self.cumulative[-1]
         if self.length < 5:
             raise ValueError("路线长度至少需要 5 米。")
-        self.total = self.length * laps if laps else None
+        self._total = self.length * laps if laps else None
+        if data.get("trajectory") is not None:
+            self.trajectory = TrajectoryPath(
+                route, data["trajectory"], laps, self.calibration, distance
+            )
+            self.trajectory_offset = 0  # The generated path already contains all lateral variation.
+            self.length = self.trajectory.ends[1]
+
+    @property
+    def total(self):
+        return self.trajectory.total if self.trajectory else self._total
+
+    def prepare_distance(self, meters):
+        if self.trajectory:
+            self.trajectory.prepare(meters)
+
+    def lap_index(self, meters):
+        return (
+            self.trajectory.lap_index(meters)
+            if self.trajectory
+            else int(max(0, meters) / self.length)
+        )
+
+    def completed_laps(self, meters):
+        if self.trajectory:
+            self.trajectory.prepare(meters)
+            return min(
+                len(self.trajectory.ends) - 1,
+                bisect.bisect_right(self.trajectory.ends, meters + 1e-6) - 1,
+            )
+        return (
+            min(self.laps, int((meters + 1e-6) / self.length))
+            if self.laps
+            else int(meters / self.length)
+        )
+
+    def display_route(self, meters):
+        if not self.trajectory:
+            return self.route
+        lap, points, _ = self.trajectory.part(meters)
+        step = max(1, math.ceil((len(points) - 1) / 1999))
+        return {
+            "name": f"{self.route['name']} · 第 {lap + 1} 圈",
+            "closed": False,
+            "points": points[:-1:step] + [points[-1]],
+        }
 
     def point_at(self, meters):
+        if self.trajectory:
+            return self.trajectory.point_at(meters)
         if self.total is not None and meters >= self.total:
             return list(self.points[-1])
         position = meters % self.length
@@ -326,13 +375,7 @@ class RunController:
     def snapshot(self):
         with self.lock:
             plan = self.plan
-            done = (
-                min(plan.laps, int((self.meters + 1e-6) / plan.length))
-                if plan and plan.laps
-                else int(self.meters / plan.length)
-                if plan
-                else 0
-            )
+            done = plan.completed_laps(self.meters) if plan else 0
             return {
                 "status": self.state,
                 "message": self.message,
@@ -341,7 +384,11 @@ class RunController:
                 "position": list(self.position) if self.position else None,
                 "completed_laps": done,
                 "current_lap": done if self.state == "completed" else done + 1 if plan else 0,
-                "lap_length_m": plan.length if plan else 0,
+                "lap_length_m": plan.trajectory.part(self.meters)[2][-1]
+                if plan and plan.trajectory
+                else plan.length
+                if plan
+                else 0,
                 "laps": plan.laps if plan else 0,
                 "pace_seconds": plan.pace if plan else None,
                 "connected": self.session is not None,
@@ -349,9 +396,10 @@ class RunController:
                 "current_pace_seconds": 1000 / self.current_speed if self.current_speed else None,
                 "pace_variation_seconds": plan.pace_variation if plan else 0,
                 "trajectory_offset_m": plan.trajectory_offset if plan else 0,
+                "trajectory_mode": "generated" if plan and plan.trajectory else "basic",
                 "holding": self.session is not None
                 and self.state in ("holding", "paused", "stopped", "completed"),
                 "device_position": self.calibration.apply(self.position) if self.position else None,
                 "calibration": self.calibration.snapshot(),
-                "route": plan.route if plan else None,
+                "route": plan.display_route(self.meters) if plan else None,
             }

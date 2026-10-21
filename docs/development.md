@@ -52,6 +52,8 @@ node tests/test_map_browser.mjs
 
 ## 格式与静态检查
 
+随机轨迹的浏览器预览位于 `web/trajectory-variation.js`，实际播放生成器位于 `src/qingji/trajectory.py`。修改算法时需保持随机数调用顺序及计算一致，并运行 `npm run test:variation` 对照两端坐标（需已创建 Python 虚拟环境，可用 `QINGJI_PYTHON` 指定解释器）。后端按批续生成并只缓存少量批次的坐标，圈数、配速和里程按各圈实际生成路径统计。
+
 ```powershell
 .\.venv\Scripts\python.exe -m pip install -r requirements-dev.txt
 npm ci

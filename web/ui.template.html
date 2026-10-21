@@ -233,6 +233,69 @@
             连续点击地图添加路线点，拖动编号点调整；点击线段可插入点。可选择平滑曲线，或直接生成并拖动操场跑道模板。
           </div>
         </div>
+        <details class="trajectory-preview" id="trajectoryPreviewPanel">
+          <summary>随机轨迹 · 预览与跑步</summary>
+          <p class="hint">
+            先加载闭环路线或生成操场模板。启用下方“随机变道轨迹”后，实际跑步沿用预览；更多圈数会自动续生成。
+          </p>
+          <div class="map-tools preview-settings">
+            <label
+              >预览圈数
+              <input
+                id="previewLaps"
+                type="number"
+                min="1"
+                max="10"
+                step="1"
+                value="3"
+            /></label>
+            <label
+              >抖动（米）
+              <input
+                id="previewJitter"
+                type="number"
+                min="0"
+                max="2"
+                step="0.1"
+                value="0.7"
+            /></label>
+            <label
+              >最大横向偏移（米）
+              <input
+                id="previewWidth"
+                type="number"
+                min="0"
+                max="6"
+                step="0.5"
+                value="3"
+            /></label>
+            <label
+              >变道频率
+              <select id="previewLanes">
+                <option value="0">关闭</option>
+                <option value="1" selected>偶尔</option>
+                <option value="2">较多</option>
+              </select></label
+            >
+            <label
+              ><input
+                id="previewInside"
+                type="checkbox"
+                checked
+              />弯道轻微内切（操场模板）</label
+            >
+            <button id="previewRefresh" type="button" class="primary">
+              生成／刷新轨迹
+            </button>
+            <button id="previewClear" type="button" class="quiet">
+              清除预览
+            </button>
+          </div>
+          <div id="previewFeedback" class="hint" role="status">
+            刷新只重新生成前方轨迹，起点保持不变。预览无需连接手机。
+          </div>
+          <div id="previewLegend" class="preview-legend"></div>
+        </details>
         <div class="map-toolbar">
           <div>
             <h2>地图选点</h2>
@@ -330,6 +393,12 @@
             ><input id="runInfinite" type="checkbox" /> 无限循环</label
           >
         </div>
+        <p>
+          <label
+            ><input id="runGeneratedTrajectory" type="checkbox" checked />
+            随机变道轨迹（沿用上方预览参数）</label
+          >
+        </p>
         <div class="variation-controls">
           <label
             ><span
@@ -368,7 +437,7 @@
           >
         </div>
         <p class="hint">
-          每圈随机选择目标配速，逐渐变速；轨迹在所设范围内连续小幅摆动。取消勾选即可关闭，暂停时停在原地。设置在开始跑步时固定。
+          随机变道模式支持抖动、缓慢变道和操场弯道内切，并按生成路径计里程；不会叠加旧版轻微偏移。开始时固定轨迹，刷新预览只影响下次跑步。暂停时保持原地。
         </p>
         <div class="run-metrics">
           <div><span>累计里程</span><strong id="runDistance">0 米</strong></div>
@@ -510,6 +579,12 @@
     </script>
     <script>
       __RUN_SCRIPT__
+    </script>
+    <script>
+      __VARIATION_SCRIPT__
+    </script>
+    <script>
+      __PREVIEW_SCRIPT__
     </script>
     <script>
       __EXIT_SCRIPT__

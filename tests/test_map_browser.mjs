@@ -369,6 +369,40 @@ try {
   );
   await evaluate(`document.getElementById('routeClose').click()`);
   assert.equal(await evaluate(`routeEditor.getDraft().closed`), true);
+  await evaluate(
+    `document.getElementById('trajectoryPreviewPanel').open=true;document.getElementById('previewLaps').value=4;document.getElementById('previewRefresh').click()`,
+  );
+  assert.equal(await evaluate(`trajectoryPreview.snapshot().laps.length`), 4);
+  const previewStart = await evaluate(`trajectoryPreview.snapshot().start`);
+  const previewSeed = await evaluate(`trajectoryPreview.snapshot().seed`);
+  await evaluate(`document.getElementById('previewRefresh').click()`);
+  assert.deepEqual(
+    await evaluate(`trajectoryPreview.snapshot().start`),
+    previewStart,
+  );
+  assert.notEqual(
+    await evaluate(`trajectoryPreview.snapshot().seed`),
+    previewSeed,
+  );
+  await evaluate(
+    `window.__previewOldState=window.trajectoryPreviewState;window.trajectoryPreviewState={mode:'simulating',target:trajectoryPreview.snapshot().laps[0].points[50]};document.getElementById('previewRefresh').click()`,
+  );
+  assert.deepEqual(
+    await evaluate(`trajectoryPreview.snapshot().start`),
+    await evaluate(`trajectoryPreviewState.target`),
+  );
+  await evaluate(
+    `window.trajectoryPreviewState=window.__previewOldState;document.getElementById('trajectoryPreviewPanel').scrollIntoView()`,
+  );
+  const variationScreenshot = await send(
+    'Page.captureScreenshot',
+    { format: 'png', captureBeyondViewport: false },
+    session,
+  );
+  await writeFile(
+    path.join(output, 'trajectory-preview.png'),
+    Buffer.from(variationScreenshot.data, 'base64'),
+  );
   const closedDistance = await evaluate(
     `Number(document.getElementById('routeStats').textContent.match(/· ([0-9.]+) 米/)[1])`,
   );
@@ -522,6 +556,20 @@ try {
   );
   await evaluate(`document.getElementById('routeTrackCreate').click()`);
   assert.equal(await evaluate(`routeEditor.getDraft().editor.mode`), 'track');
+  await evaluate(
+    `document.getElementById('previewLaps').value=3;document.getElementById('previewRefresh').click();document.getElementById('trajectoryPreviewPanel').scrollIntoView()`,
+  );
+  assert.equal(await evaluate(`trajectoryPreview.snapshot().laps.length`), 3);
+  await pause(700);
+  const trackVariationScreenshot = await send(
+    'Page.captureScreenshot',
+    { format: 'png', captureBeyondViewport: false },
+    session,
+  );
+  await writeFile(
+    path.join(output, 'trajectory-track-preview.png'),
+    Buffer.from(trackVariationScreenshot.data, 'base64'),
+  );
   assert.equal(
     await evaluate(`document.querySelectorAll('.track-handle').length`),
     3,
@@ -531,6 +579,11 @@ try {
     `document.getElementById('trackLength').value=180;document.getElementById('trackWidth').value=60;document.getElementById('trackAngle').value=35;document.getElementById('trackAngle').dispatchEvent(new Event('change'))`,
   );
   assert.equal(await evaluate(`routeEditor.getDraft().editor.track.angle`), 35);
+  assert.equal(
+    await evaluate(`trajectoryPreview.snapshot()`),
+    null,
+    'Changing route invalidates old preview',
+  );
   const centerBefore = await evaluate(
     `routeEditor.getDraft().editor.track.center[0]`,
   );
@@ -617,7 +670,9 @@ try {
     }
     throw Error('UI condition timed out: ' + expression);
   }
-  await evaluate(`document.getElementById('runStart').click()`);
+  await evaluate(
+    `document.getElementById('runGeneratedTrajectory').checked=false;refreshRunControls();document.getElementById('runStart').click()`,
+  );
   await waitFor(`document.getElementById('runBadge').textContent==='跑步中'`);
   assert.equal(
     await evaluate(`window.__mockRequests[0].body.pace_seconds`),
@@ -698,6 +753,54 @@ try {
     ),
     0,
     'Trajectory variation can be disabled',
+  );
+  await evaluate(`document.getElementById('runStop').click()`);
+  await waitFor(`document.getElementById('runBadge').textContent==='已结束'`);
+  await evaluate(
+    `document.getElementById('runGeneratedTrajectory').checked=true;refreshRunControls();document.getElementById('previewRefresh').click()`,
+  );
+  const selectedSeed = await evaluate(`trajectoryPreview.snapshot().seed`);
+  const selectedAnchor = await evaluate(`trajectoryPreview.snapshot().start`);
+  await evaluate(
+    `document.getElementById('runInfinite').checked=true;document.getElementById('runStart').click()`,
+  );
+  await waitFor(`document.getElementById('runBadge').textContent==='跑步中'`);
+  const generatedRequest = await evaluate(
+    `window.__mockRequests.filter(r=>r.pathname==='/api/run-start').at(-1).body`,
+  );
+  assert.equal(
+    generatedRequest.trajectory.seed,
+    selectedSeed,
+    'Actual run reuses preview seed',
+  );
+  assert.deepEqual(
+    generatedRequest.trajectory.anchor,
+    selectedAnchor,
+    'Actual run reuses preview anchor',
+  );
+  assert.equal(
+    generatedRequest.laps,
+    0,
+    'Generated mode supports infinite runs',
+  );
+  assert.equal(
+    generatedRequest.trajectory_offset_m,
+    0,
+    'No double application of old jitter',
+  );
+  assert.equal(
+    await evaluate(
+      `document.getElementById('runGeneratedTrajectory').disabled`,
+    ),
+    true,
+  );
+  await evaluate(`document.getElementById('previewRefresh').click()`);
+  assert.equal(
+    await evaluate(
+      `window.__mockRequests.filter(r=>r.pathname==='/api/run-start').at(-1).body.trajectory.seed`,
+    ),
+    selectedSeed,
+    'Refreshing preview leaves active task unchanged',
   );
   await evaluate(`document.getElementById('runStop').click()`);
   await waitFor(`document.getElementById('runBadge').textContent==='已结束'`);

@@ -42,8 +42,13 @@
       'paceVariation',
       'trajectoryOffsetEnabled',
       'trajectoryOffset',
+      'runGeneratedTrajectory',
     ])
       el(id).disabled = Boolean(active);
+    if (el('runGeneratedTrajectory').checked) {
+      el('trajectoryOffsetEnabled').disabled = true;
+      el('trajectoryOffset').disabled = true;
+    }
   }
   window.refreshRunControls = controls;
   window.renderRunning = (state) => {
@@ -65,7 +70,7 @@
       state.current_pace_seconds || state.pace_seconds,
     );
     el('runPaceDetail').textContent = state.pace_seconds
-      ? `基准 ${pace(state.pace_seconds)} · 本圈目标 ${pace(state.lap_pace_seconds || state.pace_seconds)} · 轨迹偏移 ${state.trajectory_offset_m || 0} 米`
+      ? `基准 ${pace(state.pace_seconds)} · 本圈目标 ${pace(state.lap_pace_seconds || state.pace_seconds)} · ${state.trajectory_mode === 'generated' ? '随机变道轨迹 · 里程按实际路径计算' : '轨迹偏移 ' + (state.trajectory_offset_m || 0) + ' 米'}`
       : '开始后显示基准与本圈目标配速。';
     el('runMessage').textContent = state.message;
     el('runMessage').className =
@@ -88,6 +93,7 @@
     if (!busy && !appExiting) controls();
   };
   el('runInfinite').onchange = controls;
+  el('runGeneratedTrajectory').onchange = controls;
   async function command(name, data = {}) {
     if (busy || appExiting) return;
     busy = true;
@@ -141,9 +147,11 @@
     const variation = el('paceVariationEnabled').checked
       ? Number(el('paceVariation').value)
       : 0;
-    const offset = el('trajectoryOffsetEnabled').checked
-      ? Number(el('trajectoryOffset').value)
-      : 0;
+    const offset =
+      !el('runGeneratedTrajectory').checked &&
+      el('trajectoryOffsetEnabled').checked
+        ? Number(el('trajectoryOffset').value)
+        : 0;
     if (
       !Number.isFinite(variation) ||
       variation < 0 ||
@@ -156,6 +164,15 @@
         '配速浮动范围为 0～120 秒／公里，轨迹偏移范围为 0～3 米。';
       return;
     }
+    let trajectory = null;
+    if (el('runGeneratedTrajectory').checked) {
+      try {
+        trajectory = window.trajectoryPreview.runConfig();
+      } catch (error) {
+        el('runMessage').textContent = error.message;
+        return;
+      }
+    }
     command('run-start', {
       route: window.routeEditor?.getDraft(),
       pace_seconds: minutes * 60 + seconds,
@@ -163,6 +180,7 @@
       calibration_enabled: window.calibrationRequested(),
       pace_variation_seconds: variation,
       trajectory_offset_m: offset,
+      trajectory,
     });
   };
   el('runPause').onclick = () =>

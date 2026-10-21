@@ -12,7 +12,7 @@ class RunMotion:
         self.phases = [rng.uniform(0, 2 * math.pi) for _ in range(2)]
 
     def lap_pace(self, meters):
-        lap = int(max(0, meters) / self.plan.length)
+        lap = self.plan.lap_index(meters)
         if self.plan.laps:
             lap = min(lap, self.plan.laps - 1)
         delta = random.Random(self.seed + lap * 104729).uniform(
@@ -29,6 +29,7 @@ class RunMotion:
             decay = math.exp(-step / 5)
             travel = goal * step + (speed - goal) * 5 * (1 - decay)
             next_speed = goal + (speed - goal) * decay
+            self.plan.prepare_distance(meters + travel)
             if self.plan.total is not None and meters + travel >= self.plan.total:
                 fraction = (self.plan.total - meters) / travel if travel else 0
                 return (

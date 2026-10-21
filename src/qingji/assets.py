@@ -30,6 +30,8 @@ def build_ui():
         "__GEOMETRY_SCRIPT__": WEB_DIR / "route-geometry.js",
         "__EXIT_SCRIPT__": WEB_DIR / "exit-ui.js",
         "__RUN_SCRIPT__": WEB_DIR / "run-ui.js",
+        "__PREVIEW_SCRIPT__": WEB_DIR / "trajectory-preview.js",
+        "__VARIATION_SCRIPT__": WEB_DIR / "trajectory-variation.js",
     }.items():
         page = page.replace(placeholder, source.read_text(encoding="utf-8"))
     DATA_DIR.mkdir(parents=True, exist_ok=True)

@@ -562,6 +562,40 @@ header .brand {
   background: none;
   border: 0;
 }
+.trajectory-preview {
+  padding: 18px 28px;
+  border-top: 1px solid #e5ebe7;
+  background: #f7faf7;
+}
+.trajectory-preview summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+.preview-settings {
+  margin: 12px 0;
+}
+.preview-settings label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.preview-settings input[type='number'] {
+  width: 78px;
+  padding: 8px;
+}
+.preview-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 10px;
+}
+.preview-legend i {
+  display: inline-block;
+  width: 20px;
+  height: 4px;
+  margin-right: 6px;
+  vertical-align: middle;
+}
 .track-handle span {
   display: block;
   white-space: nowrap;
